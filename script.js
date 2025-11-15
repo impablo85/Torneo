@@ -402,6 +402,7 @@ function updateSelectedList() {
 
 function generateAllRounds() {
     allRounds = [];
+    currentRoundIndex = 0;
     let currentRound;
     
     if (currentMode === 'songs') {
@@ -412,10 +413,12 @@ function generateAllRounds() {
             .sort(() => Math.random() - 0.5);
     }
     
+    // Generar todas las rondas hasta llegar a 1 ganador
     while (currentRound.length > 1) {
         const matches = [];
         for (let i = 0; i < currentRound.length; i += 2) {
             if (i + 1 < currentRound.length) {
+                // Match normal entre 2 competidores
                 matches.push({
                     item1: currentRound[i],
                     item2: currentRound[i + 1],
@@ -423,6 +426,7 @@ function generateAllRounds() {
                     completed: false
                 });
             } else {
+                // Si hay número impar, uno pasa directo
                 matches.push({
                     item1: currentRound[i],
                     item2: null,
@@ -433,18 +437,12 @@ function generateAllRounds() {
         }
         allRounds.push(matches);
         
-        const winners = [];
-        matches.forEach(m => {
-            if (m.item2) {
-                winners.push(null);
-            } else {
-                winners.push(m.winner);
-            }
-        });
-        
-        currentRound = winners.filter(w => w !== null);
-        if (currentRound.length === 0 && matches.length > 1) {
-            currentRound = new Array(Math.ceil(matches.length / 2)).fill(null);
+        // Preparar la siguiente ronda con espacios vacíos para los ganadores
+        const nextRoundSize = Math.ceil(matches.length / 2);
+        if (nextRoundSize > 0) {
+            currentRound = new Array(nextRoundSize).fill(null);
+        } else {
+            break;
         }
     }
 }
@@ -523,7 +521,8 @@ function displayAllBrackets() {
                         `</div>`;
                 }
                 
-                if (!match.completed && roundIndex === currentRoundIndex) {
+                // Permitir clic solo en la ronda actual Y en matches no completados
+                if (roundIndex === currentRoundIndex && !match.completed) {
                     const options = matchup.querySelectorAll('.song-option, .artist-option');
                     options.forEach(option => {
                         option.addEventListener('click', function() {
@@ -560,7 +559,8 @@ function displayAllBrackets() {
         bracketContainer.appendChild(column);
     });
 
-    if (allRounds.length > 0 && allRounds[allRounds.length - 1][0].completed) {
+    // NO mostrar ganador automáticamente, solo si ya fue seleccionado
+    if (allRounds.length > 0 && allRounds[allRounds.length - 1][0].completed && allRounds[allRounds.length - 1][0].winner) {
         showWinner();
     }
 }
@@ -595,13 +595,26 @@ function advanceToNextRound(completedRoundIndex) {
         const winners = allRounds[completedRoundIndex].map(m => m.winner);
         const nextRound = allRounds[completedRoundIndex + 1];
         
+        // Llenar la siguiente ronda con los ganadores
         let winnerIndex = 0;
-        nextRound.forEach(match => {
-            if (match.item2 && !match.completed) {
-                match.item1 = winners[winnerIndex++];
-                match.item2 = winners[winnerIndex++];
+        for (let i = 0; i < nextRound.length; i++) {
+            const match = nextRound[i];
+            
+            // Solo llenar matches que no están completos (no son bye)
+            if (!match.completed && winnerIndex < winners.length) {
+                if (winnerIndex + 1 < winners.length) {
+                    // Hay 2 ganadores disponibles para este match
+                    match.item1 = winners[winnerIndex++];
+                    match.item2 = winners[winnerIndex++];
+                } else {
+                    // Solo queda 1 ganador, pasa directo
+                    match.item1 = winners[winnerIndex++];
+                    match.item2 = null;
+                    match.winner = match.item1;
+                    match.completed = true;
+                }
             }
-        });
+        }
         
         currentRoundIndex = completedRoundIndex + 1;
         displayAllBrackets();
@@ -613,6 +626,7 @@ function advanceToNextRound(completedRoundIndex) {
             }
         }, 100);
     } else {
+        // Ya no hay más rondas, mostrar ganador
         showWinner();
     }
 }
