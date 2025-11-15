@@ -413,38 +413,27 @@ function generateAllRounds() {
             .sort(() => Math.random() - 0.5);
     }
     
-    // Generar todas las rondas hasta llegar a 1 ganador
-    while (currentRound.length > 1) {
-        const matches = [];
-        for (let i = 0; i < currentRound.length; i += 2) {
-            if (i + 1 < currentRound.length) {
-                // Match normal entre 2 competidores
-                matches.push({
-                    item1: currentRound[i],
-                    item2: currentRound[i + 1],
-                    winner: null,
-                    completed: false
-                });
-            } else {
-                // Si hay número impar, uno pasa directo
-                matches.push({
-                    item1: currentRound[i],
-                    item2: null,
-                    winner: currentRound[i],
-                    completed: true
-                });
-            }
-        }
-        allRounds.push(matches);
-        
-        // Preparar la siguiente ronda con espacios vacíos para los ganadores
-        const nextRoundSize = Math.ceil(matches.length / 2);
-        if (nextRoundSize > 0) {
-            currentRound = new Array(nextRoundSize).fill(null);
+    // Crear solo la primera ronda con todos los competidores
+    const matches = [];
+    for (let i = 0; i < currentRound.length; i += 2) {
+        if (i + 1 < currentRound.length) {
+            matches.push({
+                item1: currentRound[i],
+                item2: currentRound[i + 1],
+                winner: null,
+                completed: false
+            });
         } else {
-            break;
+            // Pasa directo si es impar
+            matches.push({
+                item1: currentRound[i],
+                item2: null,
+                winner: currentRound[i],
+                completed: true
+            });
         }
     }
+    allRounds.push(matches);
 }
 
 function getRoundName(roundIndex) {
