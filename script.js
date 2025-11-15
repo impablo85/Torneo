@@ -575,9 +575,17 @@ function selectWinner(roundIndex, matchIndex, option) {
     
     match.winner = option.getAttribute('data-item');
     match.completed = true;
+    matchup.classList.add('completed');
     
     const currentRound = allRounds[roundIndex];
-    if (currentRound.every(m => m.completed)) {
+    const isLastRound = roundIndex === allRounds.length - 1;
+    
+    // Si es la última ronda (final) y se completó, mostrar ganador
+    if (isLastRound && currentRound.every(m => m.completed)) {
+        showWinner();
+    } 
+    // Si no es la última ronda y se completaron todos los matches, avanzar
+    else if (!isLastRound && currentRound.every(m => m.completed)) {
         advanceToNextRound(roundIndex);
     }
 }
