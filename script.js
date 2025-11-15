@@ -91,10 +91,8 @@ songsData.forEach(song => {
 let currentMode = 'songs';
 let selectedItems = [];
 let selectedArtists = {};
-let allRounds = [];
-let currentRoundIndex = 0;
+let bracket = []; // Estructura completa del bracket
 let currentLayout = 'horizontal';
-let tempArtistSelection = null;
 
 // Elementos del DOM
 const searchBox = document.getElementById('searchBox');
@@ -111,8 +109,6 @@ const phaseIndicator = document.getElementById('phaseIndicator');
 const winnersSection = document.getElementById('winnersSection');
 
 // Event Listeners
-
-// Mode selector
 document.querySelectorAll('.mode-btn').forEach(btn => {
     btn.addEventListener('click', function() {
         document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
@@ -135,7 +131,6 @@ document.querySelectorAll('.mode-btn').forEach(btn => {
     });
 });
 
-// Layout toggle
 document.querySelectorAll('.layout-toggle button').forEach(btn => {
     btn.addEventListener('click', function() {
         document.querySelectorAll('.layout-toggle button').forEach(b => b.classList.remove('active'));
@@ -147,7 +142,6 @@ document.querySelectorAll('.layout-toggle button').forEach(btn => {
     });
 });
 
-// Search box
 searchBox.addEventListener('input', function() {
     const query = this.value.trim();
     if (query.length < 2) {
@@ -163,23 +157,20 @@ searchBox.addEventListener('input', function() {
     }
 });
 
-// Start button
 startBtn.addEventListener('click', function() {
-    generateAllRounds();
+    generateBracket();
     setupScreen.classList.remove('active');
     tournamentScreen.classList.add('active');
-    displayAllBrackets();
+    renderBracket();
 });
 
-// Funciones
-
+// Funciones de búsqueda
 function searchSongs(query) {
     const filtered = songsData.filter(song => 
         song.toLowerCase().includes(query.toLowerCase()) && !selectedItems.includes(song)
     );
 
     let resultsHTML = '';
-
     if (filtered.length > 0) {
         resultsHTML = filtered.slice(0, 10).map(song => {
             const escapedSong = song.replace(/'/g, "\\'").replace(/"/g, "&quot;");
@@ -190,7 +181,6 @@ function searchSongs(query) {
         }).join('');
     }
 
-    // Opción para agregar personalizada
     const escapedQuery = query.replace(/'/g, "\\'").replace(/"/g, "&quot;");
     resultsHTML += `<div class="search-item custom" onclick="addCustomSong('${escapedQuery}')">
         <span>✨ Agregar: "${query}"</span>
@@ -207,7 +197,6 @@ function searchArtists(query) {
     );
 
     let resultsHTML = '';
-
     if (filtered.length > 0) {
         resultsHTML = filtered.slice(0, 10).map(artist => {
             const escapedArtist = artist.replace(/'/g, "\\'").replace(/"/g, "&quot;");
@@ -258,17 +247,13 @@ function addCustomSong(query) {
 }
 
 function selectArtistForSongs(artist) {
-    tempArtistSelection = artist;
     const songs = artistsData[artist] || [];
     
     let html = '<div style="padding: 15px; background: #fff; color: #333; border-radius: 10px;">';
     html += `<h4 style="margin-bottom: 10px;">Selecciona 3 canciones de ${artist}:</h4>`;
     
     if (!selectedArtists[artist]) {
-        selectedArtists[artist] = {
-            name: artist,
-            songs: []
-        };
+        selectedArtists[artist] = { name: artist, songs: [] };
     }
     
     songs.forEach(song => {
@@ -309,7 +294,6 @@ function toggleSongSelection(artist, song) {
         }
     }
     
-    // Re-render la selección
     selectArtistForSongs(artist);
 }
 
@@ -338,10 +322,7 @@ function addCustomArtist(artistName) {
     }
     
     if (songs.length === 3) {
-        selectedArtists[artistName] = {
-            name: artistName,
-            songs: songs
-        };
+        selectedArtists[artistName] = { name: artistName, songs: songs };
         updateSelectedList();
         searchBox.value = '';
         searchResults.innerHTML = '';
@@ -400,60 +381,77 @@ function updateSelectedList() {
     }
 }
 
-function generateAllRounds() {
-    allRounds = [];
-    currentRoundIndex = 0;
-    let currentRound;
+// GENERACIÓN DEL BRACKET COMPLETO
+function generateBracket() {
+    let participants;
     
     if (currentMode === 'songs') {
-        currentRound = [...selectedItems].sort(() => Math.random() - 0.5);
+        participants = [...selectedItems].sort(() => Math.random() - 0.5);
     } else {
-        currentRound = Object.keys(selectedArtists)
+        participants = Object.keys(selectedArtists)
             .filter(a => selectedArtists[a].songs.length === 3)
             .sort(() => Math.random() - 0.5);
     }
     
-    // Crear solo la primera ronda con todos los competidores
-    const matches = [];
-    for (let i = 0; i < currentRound.length; i += 2) {
-        if (i + 1 < currentRound.length) {
-            matches.push({
-                item1: currentRound[i],
-                item2: currentRound[i + 1],
-                winner: null,
-                completed: false
-            });
-        } else {
-            // Pasa directo si es impar
-            matches.push({
-                item1: currentRound[i],
-                item2: null,
-                winner: currentRound[i],
-                completed: true
+    // Calcular número de rondas necesarias
+    const numRounds = Math.ceil(Math.log2(participants.length));
+    const totalSlots = Math.pow(2, numRounds);
+    
+    // Llenar con nulls si es necesario
+    while (participants.length < totalSlots) {
+        participants.push(null);
+    }
+    
+    // Construir todas las rondas
+    bracket = [];
+    
+    // Primera ronda
+    const firstRound = [];
+    for (let i = 0; i < participants.length; i += 2) {
+        firstRound.push({
+            player1: participants[i],
+            player2: participants[i + 1],
+            winner: participants[i + 1] === null ? participants[i] : null
+        });
+    }
+    bracket.push(firstRound);
+    
+    // Rondas subsiguientes (vacías)
+    let matchesInRound = firstRound.length;
+    for (let r = 1; r < numRounds; r++) {
+        matchesInRound = Math.ceil(matchesInRound / 2);
+        const round = [];
+        for (let m = 0; m < matchesInRound; m++) {
+            round.push({
+                player1: null,
+                player2: null,
+                winner: null
             });
         }
+        bracket.push(round);
     }
-    allRounds.push(matches);
 }
 
 function getRoundName(roundIndex) {
-    const currentMatches = allRounds[roundIndex].filter(m => m.item2 !== null).length;
+    const totalRounds = bracket.length;
+    const fromEnd = totalRounds - roundIndex;
     
-    // Determinar el nombre según la cantidad de matches reales
-    if (currentMatches === 1) return '🏆 FINAL';
-    if (currentMatches === 2) return '🥈 SEMIFINALES';
-    if (currentMatches === 4) return '🥉 CUARTOS DE FINAL';
-    if (currentMatches === 8) return '⚡ OCTAVOS DE FINAL';
-    return 'RONDA ' + (roundIndex + 1);
+    if (fromEnd === 1) return '🏆 FINAL';
+    if (fromEnd === 2) return '🥈 SEMIFINALES';
+    if (fromEnd === 3) return '🥉 CUARTOS DE FINAL';
+    if (fromEnd === 4) return '⚡ OCTAVOS DE FINAL';
+    return `RONDA ${roundIndex + 1}`;
 }
 
-function displayAllBrackets() {
-    const totalItems = currentMode === 'songs' ? selectedItems.length : Object.keys(selectedArtists).filter(a => selectedArtists[a].songs.length === 3).length;
+function renderBracket() {
+    const totalItems = currentMode === 'songs' ? selectedItems.length : 
+        Object.keys(selectedArtists).filter(a => selectedArtists[a].songs.length === 3).length;
     phaseIndicator.textContent = `Torneo de ${totalItems} ${currentMode === 'songs' ? 'canciones' : 'artistas'}`;
     
     bracketContainer.innerHTML = '';
-
-    allRounds.forEach((round, roundIndex) => {
+    winnersSection.style.display = 'none';
+    
+    bracket.forEach((round, roundIndex) => {
         const column = document.createElement('div');
         column.className = 'round-column';
         
@@ -461,204 +459,156 @@ function displayAllBrackets() {
         header.className = 'round-header';
         header.textContent = getRoundName(roundIndex);
         column.appendChild(header);
-
+        
         const matchesContainer = document.createElement('div');
         matchesContainer.className = 'matches-container';
         
         round.forEach((match, matchIndex) => {
-            const matchup = document.createElement('div');
-            matchup.className = 'matchup';
-            matchup.setAttribute('data-round', roundIndex);
-            matchup.setAttribute('data-match', matchIndex);
-            
-            if (match.completed) {
-                matchup.classList.add('completed');
-            }
-            
-            if (match.item2) {
-                if (currentMode === 'songs') {
-                    const parts1 = match.item1.split(' – ');
-                    const parts2 = match.item2.split(' – ');
-                    const artist1 = parts1[0];
-                    const song1 = parts1[1];
-                    const artist2 = parts2[0];
-                    const song2 = parts2[1];
-                    
-                    matchup.innerHTML = 
-                        `<div class="matchup-number">vs ${matchIndex + 1}</div>` +
-                        `<div class="song-option${match.winner === match.item1 ? ' winner' : ''}" data-item="${match.item1}">` +
-                        `<div class="song-artist">${artist1}</div>` +
-                        `<div class="song-title">${song1}</div>` +
-                        `</div>` +
-                        `<div class="song-option${match.winner === match.item2 ? ' winner' : ''}" data-item="${match.item2}">` +
-                        `<div class="song-artist">${artist2}</div>` +
-                        `<div class="song-title">${song2}</div>` +
-                        `</div>`;
-                } else {
-                    const artist1Data = selectedArtists[match.item1];
-                    const artist2Data = selectedArtists[match.item2];
-                    
-                    matchup.innerHTML = 
-                        `<div class="matchup-number">vs ${matchIndex + 1}</div>` +
-                        `<div class="artist-option${match.winner === match.item1 ? ' winner' : ''}" data-item="${match.item1}">` +
-                        `<div class="song-artist">${match.item1}</div>` +
-                        `<div class="artist-songs">${artist1Data.songs.join(' • ')}</div>` +
-                        `</div>` +
-                        `<div class="artist-option${match.winner === match.item2 ? ' winner' : ''}" data-item="${match.item2}">` +
-                        `<div class="song-artist">${match.item2}</div>` +
-                        `<div class="artist-songs">${artist2Data.songs.join(' • ')}</div>` +
-                        `</div>`;
-                }
-                
-                // Permitir clic solo en la ronda actual Y en matches no completados
-                if (roundIndex === currentRoundIndex && !match.completed) {
-                    const options = matchup.querySelectorAll('.song-option, .artist-option');
-                    options.forEach(option => {
-                        option.addEventListener('click', function() {
-                            selectWinner(roundIndex, matchIndex, this);
-                        });
-                    });
-                }
-            } else {
-                if (currentMode === 'songs') {
-                    const parts = match.item1.split(' – ');
-                    const artist = parts[0];
-                    const song = parts[1];
-                    matchup.innerHTML = 
-                        `<div class="matchup-number">Pasa directo</div>` +
-                        `<div class="song-option winner" data-item="${match.item1}">` +
-                        `<div class="song-artist">${artist}</div>` +
-                        `<div class="song-title">${song}</div>` +
-                        `</div>`;
-                } else {
-                    const artistData = selectedArtists[match.item1];
-                    matchup.innerHTML = 
-                        `<div class="matchup-number">Pasa directo</div>` +
-                        `<div class="artist-option winner" data-item="${match.item1}">` +
-                        `<div class="song-artist">${match.item1}</div>` +
-                        `<div class="artist-songs">${artistData.songs.join(' • ')}</div>` +
-                        `</div>`;
-                }
-            }
-            
+            const matchup = createMatchElement(match, roundIndex, matchIndex);
             matchesContainer.appendChild(matchup);
         });
         
         column.appendChild(matchesContainer);
         bracketContainer.appendChild(column);
     });
-
-    // NO mostrar ganador automáticamente, solo si ya fue seleccionado
-    if (allRounds.length > 0 && allRounds[allRounds.length - 1][0].completed && allRounds[allRounds.length - 1][0].winner) {
-        showWinner();
-    }
+    
+    // Verificar si hay ganador
+    checkForWinner();
 }
 
-function selectWinner(roundIndex, matchIndex, option) {
-    const match = allRounds[roundIndex][matchIndex];
-    const matchup = document.querySelector(`[data-round="${roundIndex}"][data-match="${matchIndex}"]`);
+function createMatchElement(match, roundIndex, matchIndex) {
+    const matchup = document.createElement('div');
+    matchup.className = 'matchup';
+    matchup.setAttribute('data-round', roundIndex);
+    matchup.setAttribute('data-match', matchIndex);
     
-    const allOptions = matchup.querySelectorAll('.song-option, .artist-option');
-    allOptions.forEach(opt => opt.classList.remove('winner'));
-    option.classList.add('winner');
-    
-    match.winner = option.getAttribute('data-item');
-    match.completed = true;
-    matchup.classList.add('completed');
-    
-    const currentRound = allRounds[roundIndex];
-    const isLastRound = roundIndex === allRounds.length - 1;
-    
-    // Si es la última ronda (final) y se completó, mostrar ganador
-    if (isLastRound && currentRound.every(m => m.completed)) {
-        showWinner();
-    } 
-    // Si no es la última ronda y se completaron todos los matches, avanzar
-    else if (!isLastRound && currentRound.every(m => m.completed)) {
-        advanceToNextRound(roundIndex);
+    // Si ambos jugadores son null, es un match vacío
+    if (match.player1 === null && match.player2 === null) {
+        matchup.innerHTML = `<div class="matchup-number">vs ${matchIndex + 1}</div>
+            <div class="song-option empty">
+                <div class="song-artist">-</div>
+            </div>
+            <div class="song-option empty">
+                <div class="song-artist">-</div>
+            </div>`;
+        matchup.classList.add('locked');
+        return matchup;
     }
+    
+    // Match con bye (uno pasa directo)
+    if (match.player2 === null) {
+        matchup.innerHTML = createPlayerHTML(match.player1, true);
+        matchup.classList.add('completed');
+        matchup.innerHTML = `<div class="matchup-number">Pasa directo</div>` + matchup.innerHTML;
+        return matchup;
+    }
+    
+    // Match normal
+    matchup.innerHTML = `
+        <div class="matchup-number">vs ${matchIndex + 1}</div>
+        ${createPlayerHTML(match.player1, match.winner === match.player1)}
+        ${createPlayerHTML(match.player2, match.winner === match.player2)}
+    `;
+    
+    if (match.winner) {
+        matchup.classList.add('completed');
+    } else {
+        const options = matchup.querySelectorAll('.song-option, .artist-option');
+        options.forEach((option, idx) => {
+            option.addEventListener('click', function() {
+                selectWinner(roundIndex, matchIndex, idx === 0 ? match.player1 : match.player2);
+            });
+        });
+    }
+    
+    return matchup;
 }
 
-function advanceToNextRound(completedRoundIndex) {
-    // Obtener todos los ganadores de la ronda actual
-    const winners = allRounds[completedRoundIndex]
-        .map(m => m.winner)
-        .filter(w => w !== null);
-    
-    // Si solo queda 1 ganador, es el campeón
-    if (winners.length === 1) {
-        showWinner();
-        return;
+function createPlayerHTML(player, isWinner) {
+    if (player === null) {
+        return `<div class="song-option empty"><div class="song-artist">-</div></div>`;
     }
     
-    // Crear la siguiente ronda con los ganadores
-    const nextMatches = [];
-    for (let i = 0; i < winners.length; i += 2) {
-        if (i + 1 < winners.length) {
-            // Match normal entre 2 ganadores
-            nextMatches.push({
-                item1: winners[i],
-                item2: winners[i + 1],
-                winner: null,
-                completed: false
-            });
-        } else {
-            // Si es impar, pasa directo
-            nextMatches.push({
-                item1: winners[i],
-                item2: null,
-                winner: winners[i],
-                completed: true
-            });
-        }
-    }
-    
-    // Agregar la nueva ronda
-    allRounds.push(nextMatches);
-    currentRoundIndex = completedRoundIndex + 1;
-    
-    // Re-renderizar todo
-    displayAllBrackets();
-    
-    // Scroll a la nueva ronda
-    setTimeout(function() {
-        const columns = document.querySelectorAll('.round-column');
-        if (columns[currentRoundIndex]) {
-            columns[currentRoundIndex].scrollIntoView({ 
-                behavior: 'smooth', 
-                block: 'nearest', 
-                inline: 'center' 
-            });
-        }
-    }, 100);
-}
-
-function showWinner() {
-    const winner = allRounds[allRounds.length - 1][0].winner;
-    
-    winnersSection.style.display = 'block';
+    const winnerClass = isWinner ? ' winner' : '';
     
     if (currentMode === 'songs') {
-        const parts = winner.split(' – ');
+        const parts = player.split(' – ');
         const artist = parts[0];
         const song = parts[1];
-        winnersSection.innerHTML = `
-            <div class="winner-card">
-                <h2>🏆 ¡GANADOR! 🏆</h2>
-                <div style="font-size: 1.8em; margin: 20px 0; font-weight: bold;">${artist}</div>
-                <div style="font-size: 1.4em;">${song}</div>
-            </div>
-        `;
+        return `<div class="song-option${winnerClass}" data-item="${player}">
+            <div class="song-artist">${artist}</div>
+            <div class="song-title">${song}</div>
+        </div>`;
     } else {
-        const artistData = selectedArtists[winner];
-        winnersSection.innerHTML = `
-            <div class="winner-card">
-                <h2>🏆 ¡GANADOR! 🏆</h2>
-                <div style="font-size: 2em; margin: 20px 0; font-weight: bold;">${winner}</div>
-                <div style="font-size: 1.2em; margin-top: 15px;">
-                    ${artistData.songs.map(s => '🎵 ' + s).join('<br>')}
-                </div>
-            </div>
-        `;
+        const artistData = selectedArtists[player];
+        return `<div class="artist-option${winnerClass}" data-item="${player}">
+            <div class="song-artist">${player}</div>
+            <div class="artist-songs">${artistData.songs.join(' • ')}</div>
+        </div>`;
     }
 }
+
+function selectWinner(roundIndex, matchIndex, winner) {
+    const match = bracket[roundIndex][matchIndex];
+    
+    // Establecer ganador
+    match.winner = winner;
+    
+    // Propagar a la siguiente ronda
+    if (roundIndex + 1 < bracket.length) {
+        const nextRoundIndex = roundIndex + 1;
+        const nextMatchIndex = Math.floor(matchIndex / 2);
+        const isFirstPlayer = matchIndex % 2 === 0;
+        
+        if (isFirstPlayer) {
+            bracket[nextRoundIndex][nextMatchIndex].player1 = winner;
+        } else {
+            bracket[nextRoundIndex][nextMatchIndex].player2 = winner;
+        }
+    }
+    
+    // Re-renderizar
+    renderBracket();
+}
+
+function checkForWinner() {
+    const finalMatch = bracket[bracket.length - 1][0];
+    
+    if (finalMatch.winner) {
+        winnersSection.style.display = 'block';
+        
+        if (currentMode === 'songs') {
+            const parts = finalMatch.winner.split(' – ');
+            const artist = parts[0];
+            const song = parts[1];
+            winnersSection.innerHTML = `
+                <div class="winner-card">
+                    <h2>🏆 ¡GANADOR! 🏆</h2>
+                    <div style="font-size: 1.8em; margin: 20px 0; font-weight: bold;">${artist}</div>
+                    <div style="font-size: 1.4em;">${song}</div>
+                </div>
+            `;
+        } else {
+            const artistData = selectedArtists[finalMatch.winner];
+            winnersSection.innerHTML = `
+                <div class="winner-card">
+                    <h2>🏆 ¡GANADOR! 🏆</h2>
+                    <div style="font-size: 2em; margin: 20px 0; font-weight: bold;">${finalMatch.winner}</div>
+                    <div style="font-size: 1.2em; margin-top: 15px;">
+                        ${artistData.songs.map(s => '🎵 ' + s).join('<br>')}
+                    </div>
+                </div>
+            `;
+        }
+    }
+}
+
+// Hacer funciones globales para onclick
+window.addSong = addSong;
+window.addCustomSong = addCustomSong;
+window.selectArtistForSongs = selectArtistForSongs;
+window.toggleSongSelection = toggleSongSelection;
+window.confirmArtistSelection = confirmArtistSelection;
+window.addCustomArtist = addCustomArtist;
+window.removeSong = removeSong;
+window.removeArtist = removeArtist;
