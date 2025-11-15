@@ -437,13 +437,13 @@ function generateAllRounds() {
 }
 
 function getRoundName(roundIndex) {
-    const totalRounds = allRounds.length;
-    const remainingRounds = totalRounds - roundIndex;
+    const currentMatches = allRounds[roundIndex].filter(m => m.item2 !== null).length;
     
-    if (remainingRounds === 1) return '🏆 FINAL';
-    if (remainingRounds === 2) return '🥈 SEMIFINALES';
-    if (remainingRounds === 3) return '🥉 CUARTOS DE FINAL';
-    if (remainingRounds === 4) return '⚡ OCTAVOS DE FINAL';
+    // Determinar el nombre según la cantidad de matches reales
+    if (currentMatches === 1) return '🏆 FINAL';
+    if (currentMatches === 2) return '🥈 SEMIFINALES';
+    if (currentMatches === 4) return '🥉 CUARTOS DE FINAL';
+    if (currentMatches === 8) return '⚡ OCTAVOS DE FINAL';
     return 'RONDA ' + (roundIndex + 1);
 }
 
@@ -580,44 +580,57 @@ function selectWinner(roundIndex, matchIndex, option) {
 }
 
 function advanceToNextRound(completedRoundIndex) {
-    if (completedRoundIndex + 1 < allRounds.length) {
-        const winners = allRounds[completedRoundIndex].map(m => m.winner);
-        const nextRound = allRounds[completedRoundIndex + 1];
-        
-        // Llenar la siguiente ronda con los ganadores
-        let winnerIndex = 0;
-        for (let i = 0; i < nextRound.length; i++) {
-            const match = nextRound[i];
-            
-            // Solo llenar matches que no están completos (no son bye)
-            if (!match.completed && winnerIndex < winners.length) {
-                if (winnerIndex + 1 < winners.length) {
-                    // Hay 2 ganadores disponibles para este match
-                    match.item1 = winners[winnerIndex++];
-                    match.item2 = winners[winnerIndex++];
-                } else {
-                    // Solo queda 1 ganador, pasa directo
-                    match.item1 = winners[winnerIndex++];
-                    match.item2 = null;
-                    match.winner = match.item1;
-                    match.completed = true;
-                }
-            }
-        }
-        
-        currentRoundIndex = completedRoundIndex + 1;
-        displayAllBrackets();
-        
-        setTimeout(function() {
-            const columns = document.querySelectorAll('.round-column');
-            if (columns[currentRoundIndex]) {
-                columns[currentRoundIndex].scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
-            }
-        }, 100);
-    } else {
-        // Ya no hay más rondas, mostrar ganador
+    // Obtener todos los ganadores de la ronda actual
+    const winners = allRounds[completedRoundIndex]
+        .map(m => m.winner)
+        .filter(w => w !== null);
+    
+    // Si solo queda 1 ganador, es el campeón
+    if (winners.length === 1) {
         showWinner();
+        return;
     }
+    
+    // Crear la siguiente ronda con los ganadores
+    const nextMatches = [];
+    for (let i = 0; i < winners.length; i += 2) {
+        if (i + 1 < winners.length) {
+            // Match normal entre 2 ganadores
+            nextMatches.push({
+                item1: winners[i],
+                item2: winners[i + 1],
+                winner: null,
+                completed: false
+            });
+        } else {
+            // Si es impar, pasa directo
+            nextMatches.push({
+                item1: winners[i],
+                item2: null,
+                winner: winners[i],
+                completed: true
+            });
+        }
+    }
+    
+    // Agregar la nueva ronda
+    allRounds.push(nextMatches);
+    currentRoundIndex = completedRoundIndex + 1;
+    
+    // Re-renderizar todo
+    displayAllBrackets();
+    
+    // Scroll a la nueva ronda
+    setTimeout(function() {
+        const columns = document.querySelectorAll('.round-column');
+        if (columns[currentRoundIndex]) {
+            columns[currentRoundIndex].scrollIntoView({ 
+                behavior: 'smooth', 
+                block: 'nearest', 
+                inline: 'center' 
+            });
+        }
+    }, 100);
 }
 
 function showWinner() {
