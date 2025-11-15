@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🎵 Torneo Musical 90s-2000s</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🎵 Torneo Musical 90s-2000s 🎸</h1>
+            <div class="mode-selector">
+                <button class="mode-btn active" data-mode="songs">🎵 Canciones</button>
+                <button class="mode-btn" data-mode="artists">🎤 Artistas (3 temas)</button>
+            </div>
+            <div class="phase-indicator" id="phaseIndicator">Configuración del Torneo</div>
+        </header>
+
+        <!-- Pantalla de Configuración -->
+        <div class="setup-screen active" id="setupScreen">
+            <div class="search-section">
+                <h2 style="margin-bottom: 15px;">🔍 Buscar y Agregar</h2>
+                <input type="text" class="search-box" id="searchBox" placeholder="Busca canciones o artistas...">
+                <div class="search-results" id="searchResults"></div>
+            </div>
+
+            <div class="selected-songs" id="selectedContainer">
+                <h3><span id="selectionTitle">Canciones Seleccionadas</span>: <span id="itemCount">0</span></h3>
+                <div id="selectedList"></div>
+            </div>
+
+            <button class="start-btn" id="startBtn" disabled>
+                🚀 Iniciar Torneo (mínimo 4 items)
+            </button>
+        </div>
+
+        <!-- Pantalla de Torneo -->
+        <div class="tournament-screen" id="tournamentScreen">
+            <div class="layout-toggle">
+                <button class="active" data-layout="horizontal">📊 Horizontal</button>
+                <button data-layout="vertical">📋 Vertical</button>
+            </div>
+            <div class="bracket-wrapper horizontal" id="bracketWrapper">
+                <div class="bracket-container horizontal" id="bracketContainer"></div>
+            </div>
+            <div class="winners-section" id="winnersSection" style="display:none;"></div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
