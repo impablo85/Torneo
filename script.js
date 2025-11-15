@@ -182,18 +182,20 @@ function searchSongs(query) {
 
     if (filtered.length > 0) {
         resultsHTML = filtered.slice(0, 10).map(song => {
-            return '<div class="search-item" onclick="addSong(\'' + song.replace(/'/g, "\\'") + '\')">' +
-                '<span>' + song + '</span>' +
-                '<button class="add-btn">+ Agregar</button>' +
-                '</div>';
+            const escapedSong = song.replace(/'/g, "\\'").replace(/"/g, "&quot;");
+            return `<div class="search-item" onclick="addSong('${escapedSong}')">
+                <span>${song}</span>
+                <button class="add-btn">+ Agregar</button>
+            </div>`;
         }).join('');
     }
 
     // Opción para agregar personalizada
-    resultsHTML += '<div class="search-item custom" onclick="addCustomSong(\'' + query.replace(/'/g, "\\'") + '\')">' +
-        '<span>✨ Agregar: "' + query + '"</span>' +
-        '<button class="add-btn">+ Agregar</button>' +
-        '</div>';
+    const escapedQuery = query.replace(/'/g, "\\'").replace(/"/g, "&quot;");
+    resultsHTML += `<div class="search-item custom" onclick="addCustomSong('${escapedQuery}')">
+        <span>✨ Agregar: "${query}"</span>
+        <button class="add-btn">+ Agregar</button>
+    </div>`;
 
     searchResults.innerHTML = resultsHTML;
     searchResults.classList.add('active');
@@ -208,17 +210,19 @@ function searchArtists(query) {
 
     if (filtered.length > 0) {
         resultsHTML = filtered.slice(0, 10).map(artist => {
-            return '<div class="search-item" onclick="selectArtistForSongs(\'' + artist.replace(/'/g, "\\'") + '\')">' +
-                '<span>' + artist + ' (' + artistsData[artist].length + ' canciones)</span>' +
-                '<button class="add-btn">Seleccionar</button>' +
-                '</div>';
+            const escapedArtist = artist.replace(/'/g, "\\'").replace(/"/g, "&quot;");
+            return `<div class="search-item" onclick="selectArtistForSongs('${escapedArtist}')">
+                <span>${artist} (${artistsData[artist].length} canciones)</span>
+                <button class="add-btn">Seleccionar</button>
+            </div>`;
         }).join('');
     }
 
-    resultsHTML += '<div class="search-item custom" onclick="addCustomArtist(\'' + query.replace(/'/g, "\\'") + '\')">' +
-        '<span>✨ Agregar artista: "' + query + '"</span>' +
-        '<button class="add-btn">+ Agregar</button>' +
-        '</div>';
+    const escapedQuery = query.replace(/'/g, "\\'").replace(/"/g, "&quot;");
+    resultsHTML += `<div class="search-item custom" onclick="addCustomArtist('${escapedQuery}')">
+        <span>✨ Agregar artista: "${query}"</span>
+        <button class="add-btn">+ Agregar</button>
+    </div>`;
 
     searchResults.innerHTML = resultsHTML;
     searchResults.classList.add('active');
@@ -258,7 +262,7 @@ function selectArtistForSongs(artist) {
     const songs = artistsData[artist] || [];
     
     let html = '<div style="padding: 15px; background: #fff; color: #333; border-radius: 10px;">';
-    html += '<h4 style="margin-bottom: 10px;">Selecciona 3 canciones de ' + artist + ':</h4>';
+    html += `<h4 style="margin-bottom: 10px;">Selecciona 3 canciones de ${artist}:</h4>`;
     
     if (!selectedArtists[artist]) {
         selectedArtists[artist] = {
@@ -269,14 +273,17 @@ function selectArtistForSongs(artist) {
     
     songs.forEach(song => {
         const isSelected = selectedArtists[artist].songs.includes(song);
-        html += '<div class="song-selection-item' + (isSelected ? ' selected' : '') + '" ' +
-            'onclick="toggleSongSelection(\'' + artist.replace(/'/g, "\\'") + '\', \'' + song.replace(/'/g, "\\'") + '\')">' +
-            song +
-            '</div>';
+        const escapedArtist = artist.replace(/'/g, "\\'").replace(/"/g, "&quot;");
+        const escapedSong = song.replace(/'/g, "\\'").replace(/"/g, "&quot;");
+        html += `<div class="song-selection-item${isSelected ? ' selected' : ''}" 
+            onclick="toggleSongSelection('${escapedArtist}', '${escapedSong}')">
+            ${song}
+        </div>`;
     });
     
-    html += '<button class="add-btn" style="width: 100%; margin-top: 10px; padding: 12px;" ' +
-        'onclick="confirmArtistSelection(\'' + artist.replace(/'/g, "\\'") + '\')">Confirmar Selección</button>';
+    const escapedArtist = artist.replace(/'/g, "\\'").replace(/"/g, "&quot;");
+    html += `<button class="add-btn" style="width: 100%; margin-top: 10px; padding: 12px;" 
+        onclick="confirmArtistSelection('${escapedArtist}')">Confirmar Selección</button>`;
     html += '</div>';
     
     searchResults.innerHTML = html;
@@ -321,7 +328,7 @@ function confirmArtistSelection(artist) {
 function addCustomArtist(artistName) {
     const songs = [];
     for (let i = 1; i <= 3; i++) {
-        const song = prompt('Ingresa la canción ' + i + ' de ' + artistName + ':');
+        const song = prompt(`Ingresa la canción ${i} de ${artistName}:`);
         if (song && song.trim()) {
             songs.push(song.trim());
         } else {
@@ -356,15 +363,16 @@ function updateSelectedList() {
     if (currentMode === 'songs') {
         itemCount.textContent = selectedItems.length;
         selectedList.innerHTML = selectedItems.map(song => {
-            return '<span class="selected-song">' +
-                song +
-                '<span class="remove-song" onclick="removeSong(\'' + song.replace(/'/g, "\\'") + '\')">✖</span>' +
-                '</span>';
+            const escapedSong = song.replace(/'/g, "\\'").replace(/"/g, "&quot;");
+            return `<span class="selected-song">
+                ${song}
+                <span class="remove-song" onclick="removeSong('${escapedSong}')">✖</span>
+            </span>`;
         }).join('');
 
         startBtn.disabled = selectedItems.length < 4;
         if (selectedItems.length >= 4) {
-            startBtn.textContent = '🚀 Iniciar Torneo con ' + selectedItems.length + ' canciones';
+            startBtn.textContent = `🚀 Iniciar Torneo con ${selectedItems.length} canciones`;
         } else {
             startBtn.textContent = '🚀 Iniciar Torneo (mínimo 4 canciones)';
         }
@@ -376,15 +384,16 @@ function updateSelectedList() {
             .filter(artist => selectedArtists[artist].songs.length === 3)
             .map(artist => {
                 const artistData = selectedArtists[artist];
-                return '<div class="artist-block">' +
-                    '<h4>' + artist + ' <span class="remove-artist" onclick="removeArtist(\'' + artist.replace(/'/g, "\\'") + '\')">✖</span></h4>' +
-                    '<div>' + artistData.songs.map(s => '• ' + s).join('<br>') + '</div>' +
-                    '</div>';
+                const escapedArtist = artist.replace(/'/g, "\\'").replace(/"/g, "&quot;");
+                return `<div class="artist-block">
+                    <h4>${artist} <span class="remove-artist" onclick="removeArtist('${escapedArtist}')">✖</span></h4>
+                    <div>${artistData.songs.map(s => '• ' + s).join('<br>')}</div>
+                </div>`;
             }).join('');
 
         startBtn.disabled = artistCount < 4;
         if (artistCount >= 4) {
-            startBtn.textContent = '🚀 Iniciar Torneo con ' + artistCount + ' artistas';
+            startBtn.textContent = `🚀 Iniciar Torneo con ${artistCount} artistas`;
         } else {
             startBtn.textContent = '🚀 Iniciar Torneo (mínimo 4 artistas)';
         }
@@ -453,7 +462,7 @@ function getRoundName(roundIndex) {
 
 function displayAllBrackets() {
     const totalItems = currentMode === 'songs' ? selectedItems.length : Object.keys(selectedArtists).filter(a => selectedArtists[a].songs.length === 3).length;
-    phaseIndicator.textContent = 'Torneo de ' + totalItems + ' ' + (currentMode === 'songs' ? 'canciones' : 'artistas');
+    phaseIndicator.textContent = `Torneo de ${totalItems} ${currentMode === 'songs' ? 'canciones' : 'artistas'}`;
     
     bracketContainer.innerHTML = '';
 
@@ -489,29 +498,29 @@ function displayAllBrackets() {
                     const song2 = parts2[1];
                     
                     matchup.innerHTML = 
-                        '<div class="matchup-number">vs ' + (matchIndex + 1) + '</div>' +
-                        '<div class="song-option' + (match.winner === match.item1 ? ' winner' : '') + '" data-item="' + match.item1 + '">' +
-                        '<div class="song-artist">' + artist1 + '</div>' +
-                        '<div class="song-title">' + song1 + '</div>' +
-                        '</div>' +
-                        '<div class="song-option' + (match.winner === match.item2 ? ' winner' : '') + '" data-item="' + match.item2 + '">' +
-                        '<div class="song-artist">' + artist2 + '</div>' +
-                        '<div class="song-title">' + song2 + '</div>' +
-                        '</div>';
+                        `<div class="matchup-number">vs ${matchIndex + 1}</div>` +
+                        `<div class="song-option${match.winner === match.item1 ? ' winner' : ''}" data-item="${match.item1}">` +
+                        `<div class="song-artist">${artist1}</div>` +
+                        `<div class="song-title">${song1}</div>` +
+                        `</div>` +
+                        `<div class="song-option${match.winner === match.item2 ? ' winner' : ''}" data-item="${match.item2}">` +
+                        `<div class="song-artist">${artist2}</div>` +
+                        `<div class="song-title">${song2}</div>` +
+                        `</div>`;
                 } else {
                     const artist1Data = selectedArtists[match.item1];
                     const artist2Data = selectedArtists[match.item2];
                     
                     matchup.innerHTML = 
-                        '<div class="matchup-number">vs ' + (matchIndex + 1) + '</div>' +
-                        '<div class="artist-option' + (match.winner === match.item1 ? ' winner' : '') + '" data-item="' + match.item1 + '">' +
-                        '<div class="song-artist">' + match.item1 + '</div>' +
-                        '<div class="artist-songs">' + artist1Data.songs.join(' • ') + '</div>' +
-                        '</div>' +
-                        '<div class="artist-option' + (match.winner === match.item2 ? ' winner' : '') + '" data-item="' + match.item2 + '">' +
-                        '<div class="song-artist">' + match.item2 + '</div>' +
-                        '<div class="artist-songs">' + artist2Data.songs.join(' • ') + '</div>' +
-                        '</div>';
+                        `<div class="matchup-number">vs ${matchIndex + 1}</div>` +
+                        `<div class="artist-option${match.winner === match.item1 ? ' winner' : ''}" data-item="${match.item1}">` +
+                        `<div class="song-artist">${match.item1}</div>` +
+                        `<div class="artist-songs">${artist1Data.songs.join(' • ')}</div>` +
+                        `</div>` +
+                        `<div class="artist-option${match.winner === match.item2 ? ' winner' : ''}" data-item="${match.item2}">` +
+                        `<div class="song-artist">${match.item2}</div>` +
+                        `<div class="artist-songs">${artist2Data.songs.join(' • ')}</div>` +
+                        `</div>`;
                 }
                 
                 if (!match.completed && roundIndex === currentRoundIndex) {
@@ -528,19 +537,19 @@ function displayAllBrackets() {
                     const artist = parts[0];
                     const song = parts[1];
                     matchup.innerHTML = 
-                        '<div class="matchup-number">Pasa directo</div>' +
-                        '<div class="song-option winner" data-item="' + match.item1 + '">' +
-                        '<div class="song-artist">' + artist + '</div>' +
-                        '<div class="song-title">' + song + '</div>' +
-                        '</div>';
+                        `<div class="matchup-number">Pasa directo</div>` +
+                        `<div class="song-option winner" data-item="${match.item1}">` +
+                        `<div class="song-artist">${artist}</div>` +
+                        `<div class="song-title">${song}</div>` +
+                        `</div>`;
                 } else {
                     const artistData = selectedArtists[match.item1];
                     matchup.innerHTML = 
-                        '<div class="matchup-number">Pasa directo</div>' +
-                        '<div class="artist-option winner" data-item="' + match.item1 + '">' +
-                        '<div class="song-artist">' + match.item1 + '</div>' +
-                        '<div class="artist-songs">' + artistData.songs.join(' • ') + '</div>' +
-                        '</div>';
+                        `<div class="matchup-number">Pasa directo</div>` +
+                        `<div class="artist-option winner" data-item="${match.item1}">` +
+                        `<div class="song-artist">${match.item1}</div>` +
+                        `<div class="artist-songs">${artistData.songs.join(' • ')}</div>` +
+                        `</div>`;
                 }
             }
             
@@ -558,7 +567,7 @@ function displayAllBrackets() {
 
 function selectWinner(roundIndex, matchIndex, option) {
     const match = allRounds[roundIndex][matchIndex];
-    const matchup = document.querySelector('[data-round="' + roundIndex + '"][data-match="' + matchIndex + '"]');
+    const matchup = document.querySelector(`[data-round="${roundIndex}"][data-match="${matchIndex}"]`);
     
     const allOptions = matchup.querySelectorAll('.song-option, .artist-option');
     allOptions.forEach(opt => opt.classList.remove('winner'));
@@ -590,4 +599,42 @@ function advanceToNextRound(completedRoundIndex) {
         displayAllBrackets();
         
         setTimeout(function() {
-            const columns =
+            const columns = document.querySelectorAll('.round-column');
+            if (columns[currentRoundIndex]) {
+                columns[currentRoundIndex].scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+            }
+        }, 100);
+    } else {
+        showWinner();
+    }
+}
+
+function showWinner() {
+    const winner = allRounds[allRounds.length - 1][0].winner;
+    
+    winnersSection.style.display = 'block';
+    
+    if (currentMode === 'songs') {
+        const parts = winner.split(' – ');
+        const artist = parts[0];
+        const song = parts[1];
+        winnersSection.innerHTML = `
+            <div class="winner-card">
+                <h2>🏆 ¡GANADOR! 🏆</h2>
+                <div style="font-size: 1.8em; margin: 20px 0; font-weight: bold;">${artist}</div>
+                <div style="font-size: 1.4em;">${song}</div>
+            </div>
+        `;
+    } else {
+        const artistData = selectedArtists[winner];
+        winnersSection.innerHTML = `
+            <div class="winner-card">
+                <h2>🏆 ¡GANADOR! 🏆</h2>
+                <div style="font-size: 2em; margin: 20px 0; font-weight: bold;">${winner}</div>
+                <div style="font-size: 1.2em; margin-top: 15px;">
+                    ${artistData.songs.map(s => '🎵 ' + s).join('<br>')}
+                </div>
+            </div>
+        `;
+    }
+}
